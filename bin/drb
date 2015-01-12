@@ -1,0 +1,87 @@
+#!/opt/ruby/bin/ruby
+
+require 'ruby-ext'
+require 'optparse'
+
+options = {}
+
+option_parser = OptionParser.new do |opt|
+  opt.banner = [
+    'Usage:',
+    '  drb [options]',
+    '  drb command cmdline [options]',
+    '',
+    '  options:'
+  ].join "\n"
+
+  opt.on('-d directory', '--dir directory', 'drb service home') do |value|
+    options[:dir] = value
+  end
+
+  opt.on('-i ip', '--ip ip', 'drb service ip address') do |value|
+    options[:ip] = value
+  end
+
+  opt.on('-p port', '--port port', 'drb service port') do |value|
+    options[:port] = value
+  end
+end
+
+status = true
+logger = Logger.new
+logger.level = Logger::DEBUG
+
+begin
+  option_parser.parse!
+
+  if ARGV.empty?
+    begin
+      if not options[:dir].nil?
+        Dir.chdir options[:dir]
+      end
+
+      DRb::Server::start options[:ip], options[:port] do |url|
+        logger << "<font color:green>drb server start</font> %s\n" % url
+      end
+    rescue Interrupt => e
+      logger << "<font color:cyan>drb server stop</font>\n"
+    rescue
+      logger.puts $!
+
+      status = false
+    ensure
+      DRb.stop_service
+    end
+  else
+    command = ARGV.shift
+    cmdline = ARGV.join ' '
+
+    if command != 'command' or cmdline.empty?
+      raise OptionParser::InvalidOption
+    end
+
+    begin
+      drb = DRb::Object.new
+      drb.logger = logger
+
+      if drb.connect options[:ip], options[:port]
+        if not drb.cmdline2e cmdline, home: options[:dir]
+          status = false
+        end
+
+        drb.close true
+      end
+    rescue
+      logger.puts $!
+
+      status = false
+    end
+  end
+rescue
+  logger << "<font color:red;highlight>Unknown command</font>\n"
+  logger << "%s\n" % option_parser.help
+
+  status = false
+end
+
+status.exit

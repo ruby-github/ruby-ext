@@ -1,0 +1,1 @@
+call c:\ruby\bin\auto_system.bat
