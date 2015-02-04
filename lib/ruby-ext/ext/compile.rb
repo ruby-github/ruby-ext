@@ -1014,6 +1014,44 @@ module Compile
 
             next
           end
+
+          # daobuilder
+          #   /^\[exec\]\s+error\s*:\s*file\s*:\s*(.*\.xml)\s+\s*\s+line\s*:\s*\d+/
+          if line =~ /^\[exec\]\s+error\s*:\s*file\s*:\s*(.*\.xml)\s+\s*\s+line\s*:\s*\d+/
+            file = $1.strip.nil
+
+            if cur_lines.size <= 5
+              error_lines = cur_lines
+            else
+              error_lines = cur_lines[-5..-1]
+            end
+
+            if not file.nil?
+              file = File.normalize file
+
+              @info[:error][file] ||= {
+                :list => []
+              }
+
+              if not @info[:error][file][:list].empty?
+                @info[:error][file][:list][-1][:message] += error_lines
+                @info[:error][file][:list][-1][:build] += cur_lines
+              else
+                @info[:error][file][:list] << {
+                  lineno:   nil,
+                  message:  error_lines,
+                  build:    cur_lines
+                }
+              end
+            end
+
+            file = nil
+            lineno = nil
+            error_lines = []
+            cur_lines = []
+
+            next
+          end
         else
           if line =~ /^\[ERROR\]/
             error_lines << line

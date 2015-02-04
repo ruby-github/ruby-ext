@@ -235,6 +235,7 @@ end
 
 class Logger
   attr_reader :logdev
+  attr_accessor :encoding
 
   def initialize logdev = nil, shift_age = 0, shift_size = nil, level = DEBUG
     @progname = nil
@@ -242,6 +243,7 @@ class Logger
     @default_formatter = Formatter.new
     @formatter = nil
     @logdev = {}
+    @encoding = 'utf-8'
 
     add_logdev logdev, level, shift_age, shift_size
   end
@@ -350,7 +352,7 @@ class Logger
         str = format_message formatter, nil, nil, nil, message
       end
 
-      dev.write str
+      dev.write str.encode(@encoding, invalid: :replace, undef: :replace, replace: '')
     end
   end
 
