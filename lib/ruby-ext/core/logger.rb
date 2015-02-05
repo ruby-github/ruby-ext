@@ -135,6 +135,8 @@ class Logger
   end
 
   class LogDevice
+    attr_accessor :encoding
+
     def set_shift shift_age = nil, shift_size = nil
       if @filename
         if shift_age
@@ -150,7 +152,7 @@ class Logger
     private
 
     def create_logfile filename
-      logdev = File.open filename, File::WRONLY | File::APPEND | File::CREAT
+      logdev = File.open filename, File::WRONLY | File::APPEND | File::CREAT, encoding: @encoding
       logdev.sync = true
       add_log_header(logdev)
       logdev
@@ -243,7 +245,7 @@ class Logger
     @default_formatter = Formatter.new
     @formatter = nil
     @logdev = {}
-    @encoding = 'utf-8'
+    @encoding = nil
 
     add_logdev logdev, level, shift_age, shift_size
   end
@@ -277,6 +279,7 @@ class Logger
       device.set_shift shift_age, shift_size
     else
       device = LogDevice.new logdev, shift_age: shift_age, shift_size: shift_size
+      device.encoding = @encoding
     end
 
     @logdev[device] = level
@@ -352,7 +355,11 @@ class Logger
         str = format_message formatter, nil, nil, nil, message
       end
 
-      dev.write str.encode(@encoding, invalid: :replace, undef: :replace, replace: '')
+      if @encoding.nil?
+        dev.write str.locale
+      else
+        dev.write str.encode(@encoding, invalid: :replace, undef: :replace, replace: '')
+      end
     end
   end
 
