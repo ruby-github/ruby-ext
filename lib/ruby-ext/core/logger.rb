@@ -135,7 +135,29 @@ class Logger
   end
 
   class LogDevice
-    attr_accessor :encoding
+    attr_reader :encoding
+
+    def initialize log = nil, opt = {}
+      @dev = nil
+      @filename = nil
+      @shift_age = nil
+      @shift_size = nil
+      @encoding = nil
+
+      @mutex = LogDeviceMutex.new
+
+      if log.respond_to? :write and log.respond_to? :close
+        @dev = log
+      else
+        @shift_age = opt[:shift_age] || 7
+        @shift_size = opt[:shift_size] || 1048576
+        @encoding = opt[:encoding]
+
+        @dev = open_logfile log
+        @dev.sync = true
+        @filename = log
+      end
+    end
 
     def set_shift shift_age = nil, shift_size = nil
       if @filename
@@ -236,21 +258,20 @@ class Logger
 end
 
 class Logger
-  attr_reader :logdev
-  attr_accessor :encoding
+  attr_reader :logdev, :encoding
 
-  def initialize logdev = nil, shift_age = 0, shift_size = nil, level = DEBUG
+  def initialize logdev = nil, shift_age = 0, shift_size = nil, level = nil, encoding = nil
     @progname = nil
-    @level = DEBUG
+    @level = level || DEBUG
+    @encoding = encoding
     @default_formatter = Formatter.new
     @formatter = nil
     @logdev = {}
-    @encoding = nil
 
-    add_logdev logdev, level, shift_age, shift_size
+    add_logdev logdev, @level, shift_age, shift_size, @encoding
   end
 
-  def add_logdev logdev, level = DEBUG, shift_age = 0, shift_size = nil
+  def add_logdev logdev, level = nil, shift_age = nil, shift_size = nil, encoding = nil
     logdev ||= STDOUT
 
     if not logdev.respond_to? :write or not logdev.respond_to? :close
@@ -278,11 +299,10 @@ class Logger
     if device
       device.set_shift shift_age, shift_size
     else
-      device = LogDevice.new logdev, shift_age: shift_age, shift_size: shift_size
-      device.encoding = @encoding
+      device = LogDevice.new logdev, shift_age: shift_age, shift_size: shift_size, encoding: encoding
     end
 
-    @logdev[device] = level
+    @logdev[device] = level || DEBUG
   end
 
   def add severity, message = nil, progname = nil, &block
