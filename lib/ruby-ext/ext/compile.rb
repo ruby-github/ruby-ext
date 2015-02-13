@@ -1016,8 +1016,8 @@ module Compile
           end
 
           # daobuilder
-          #   /^\[exec\]\s+error\s*:\s*file\s*:\s*(.*\.xml)\s+\s*\s+line\s*:\s*\d+/
-          if line =~ /^\[exec\]\s+error\s*:\s*file\s*:\s*(.*\.xml)\s+\s*\s+line\s*:\s*\d+/
+          #   /^\[exec\].*\s+error\s*:\s*file\s*:\s*(.*\.xml)/
+          if line =~ /^\[exec\].*\s+error\s*:\s*file\s*:\s*(.*\.xml)/
             file = $1.strip.nil
 
             if cur_lines.size <= 5
