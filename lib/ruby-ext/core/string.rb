@@ -53,7 +53,7 @@ class String
     else
       dup = self.dup
 
-      (['locale', 'external', 'filesystem'] + Encoding.name_list).uniq.each do |name|
+      (['utf-8', 'locale', 'external', 'filesystem'] + Encoding.name_list).uniq.each do |name|
         if name == 'ASCII-8BIT'
           next
         end
