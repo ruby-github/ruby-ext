@@ -281,6 +281,10 @@ module REXML
     end
 
     def from_hash hash
+      if not hash.is_a? Hash
+        return
+      end
+
       if hash.has_key? :text
         self.text = hash[:text]
       end
