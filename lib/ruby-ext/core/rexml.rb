@@ -251,4 +251,55 @@ module REXML
       __content__(enc).downcase
     end
   end
+
+  class Element
+    def to_hash
+      hash = {}
+
+      if has_text? and not text.strip.empty?
+        hash[:text] = text.strip
+      end
+
+      if has_attributes?
+        hash[:attributes] = {}
+
+        attributes.each_attribute do |attr|
+          hash[:attributes][attr.expanded_name] = attr.value
+        end
+      end
+
+      if has_elements?
+        hash[:elements] = {}
+
+        each_element do |element|
+          hash[:elements][element.expanded_name] ||= []
+          hash[:elements][element.expanded_name] << element.to_hash
+        end
+      end
+
+      hash
+    end
+
+    def from_hash hash
+      if hash.has_key? :text
+        self.text = hash[:text]
+      end
+
+      if hash.has_key? :attributes
+        hash[:attributes].each do |k, v|
+          self.attributes[k] = v
+        end
+      end
+
+      if hash.has_key? :elements
+        hash[:elements].each do |k, v|
+          v.each do |x|
+            e = REXML::Element.new k
+            e.from_hash x
+            self << e
+          end
+        end
+      end
+    end
+  end
 end
