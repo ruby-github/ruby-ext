@@ -1828,7 +1828,9 @@ module ASN1
     end
 
     def validate?
-      @asn1 = @data.to_hash
+      if not @data.nil?
+        @asn1 = @data.to_hash
+      end
 
       true
     end
@@ -1839,6 +1841,37 @@ module ASN1
 
     def asn1
       @asn1
+    end
+
+    def == other_asn1
+      if other_asn1.nil?
+        set_state nil, nil
+
+        false
+      else
+        if @classname != other_asn1.classname
+          set_state false, nil
+          other_asn1.set_state false, nil
+
+          false
+        else
+          asn1 == other_asn1.asn1
+        end
+      end
+    end
+
+    def to_string
+      if @asn1.nil?
+        ''
+      else
+        element = REXML::Element.new @classname.split(':').last
+        element.from_hash @asn1
+        element.to_string
+      end
+    end
+
+    def to_html
+      to_string
     end
 
     private
