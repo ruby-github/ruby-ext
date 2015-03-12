@@ -305,5 +305,12 @@ module REXML
         end
       end
     end
+
+    def to_string
+      str_io = StringIO.new
+      write str_io, 2
+
+      str_io.string
+    end
   end
 end

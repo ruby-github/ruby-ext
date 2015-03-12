@@ -1763,3 +1763,111 @@ module ASN1
     end
   end
 end
+
+module ASN1
+  # xml
+  # 1) get
+  #
+  #    <get>
+  #      <filter type="subtree">
+  #        ....
+  #      </filter>
+  #    </get>
+  #
+  #    <get-config>
+  #      <filter type="subtree">
+  #        ....
+  #      </filter>
+  #    </get-config>
+  #
+  #    <get-next xmlns="http://www.zte.com.cn/zxr10/netconf/protocol/ns">
+  #      <filter type="subtree">
+  #        ....
+  #      </filter>
+  #    </get-next>
+  #
+  # 2) set
+  #
+  #    <edit-config>
+  #      <config>
+  #        ....
+  #      </config>
+  #    </edit-config>
+  #
+  # 3) action
+  #
+  #    <action xmlns="http://www.zte.com.cn/zxr10/netconf/protocol/ns">
+  #      <object>
+  #        ...
+  #      </object>
+  #    </action>
+  class XML < Asn1
+    # opt
+    #     :name
+    #     :ne
+    #     :cmdcode
+    #     :time
+    #     :data
+    #     :file
+    #     :lines
+    def initialize opt
+      @opt = opt
+      @data = nil
+      @classname = get_classname
+
+      if @opt[:name].nil?
+        @opt[:name] = @opt[:ne]
+      end
+
+      @asn1 = nil
+
+      @match = nil
+      @ignore = nil
+      @ignore_paths = nil
+      @sort_keys = nil
+    end
+
+    def validate?
+      @asn1 = @data.to_hash
+
+      true
+    end
+
+    def set_sort_keys sort_keys
+      nil
+    end
+
+    def asn1
+      @asn1
+    end
+
+    private
+
+    def get_classname
+      classname = nil
+
+      if @opt[:data].size > 4
+        begin
+          doc = REXML::Document.new @opt[:data].join("\n")
+
+          REXML::XPath.each doc, '/*/config | /*/filter | /*/object' do |e|
+            e.each_element do |element|
+              @data = element
+
+              break
+            end
+
+            break
+          end
+        rescue
+        end
+      end
+
+      if not @data.nil?
+        classname = '%s:%s' % [@data.attributes['xmlns'], @data.name]
+      end
+
+      classname
+    end
+  end
+end
