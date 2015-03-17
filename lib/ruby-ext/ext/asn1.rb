@@ -1819,6 +1819,7 @@ module ASN1
         @opt[:name] = @opt[:ne]
       end
 
+      @hash_asn1 = nil
       @asn1 = nil
 
       @match = nil
@@ -1829,7 +1830,7 @@ module ASN1
 
     def validate?
       if not @data.nil?
-        @asn1 = @data.to_hash
+        @hash_asn1 = @data.to_hash
       end
 
       true
@@ -1840,6 +1841,10 @@ module ASN1
     end
 
     def asn1
+      if @asn1.nil? and not @hash_asn1.nil?
+        @asn1 = to_ruby @classname.split(':').last, @hash_asn1
+      end
+
       @asn1
     end
 
@@ -1865,7 +1870,7 @@ module ASN1
         ''
       else
         element = REXML::Element.new @classname.split(':').last
-        element.from_hash @asn1
+        element.from_hash @hash_asn1
         element.to_string
       end
     end
@@ -1901,6 +1906,78 @@ module ASN1
       end
 
       classname
+    end
+
+    def to_ruby name, hash
+      xml_element = XMLElement.new name
+
+      if not hash[:elements].nil?
+        hash[:elements].each do |k, v|
+          xml_element.elements[k] = []
+
+          v.each do |x|
+            xml_element.elements[k] << to_ruby(k, x)
+          end
+        end
+      end
+
+      if not hash[:attributes].nil?
+        hash[:attributes].each do |k, v|
+          xml_attribute = XMLAttribute.new k, v
+          xml_element.attributes << xml_attribute
+        end
+      end
+
+      if not hash[:text].nil?
+        xml_element.text = hash[:text]
+      end
+
+      xml_element
+    end
+  end
+
+  class XMLElement
+    attr_accessor :elements, :attributes, :text
+
+    def initialize name
+      @name = name
+
+      @elements = {}
+      @attributes = []
+      @text = nil
+    end
+
+    def to_string
+      hash = {
+        name: @name.to_string
+      }
+
+      if not @elements.empty?
+        hash[:elements] = @elements.to_string
+      end
+
+      if not @attributes.empty?
+        hash[:attributes] = @attributes.to_string
+      end
+
+      if not @text.nil?
+        hash[:text] = @text.to_string
+      end
+
+      hash.to_string
+    end
+  end
+
+  class XMLAttribute
+    attr_reader :name, :value
+
+    def initialize name, value
+      @name = name
+      @value = value
+    end
+
+    def to_string
+      '%s = %s' % [@name, @value]
     end
   end
 end
