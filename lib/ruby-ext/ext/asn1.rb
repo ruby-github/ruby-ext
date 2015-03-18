@@ -1836,13 +1836,21 @@ module ASN1
       true
     end
 
-    def set_sort_keys sort_keys
-      nil
-    end
-
     def asn1
       if @asn1.nil? and not @hash_asn1.nil?
         @asn1 = to_ruby @classname.split(':').last, @hash_asn1
+
+        if not @match.nil? or not @ignore.nil?
+          set_state @match, @ignore
+        end
+
+        if not @ignore_paths.nil?
+          set_ignore @ignore_paths
+        end
+
+        if not @sort_keys.nil?
+          set_sort_keys @sort_keys
+        end
       end
 
       @asn1
@@ -1865,18 +1873,50 @@ module ASN1
       end
     end
 
-    def to_string
+    def set_state match, ignore
       if @asn1.nil?
-        ''
+        @match = match
+        @ignore = ignore
       else
-        element = REXML::Element.new @classname.split(':').last
-        element.from_hash @hash_asn1
-        element.to_string
+        @asn1.set_state match, ignore
+
+        @match = nil
+        @ignore = nil
       end
     end
 
+    def set_ignore paths_info
+      if @asn1.nil?
+        @ignore_paths = paths_info
+      else
+        paths_info.each do |path, condition|
+          @asn1.set_ignore path, condition
+        end
+
+        @ignore_paths = nil
+      end
+    end
+
+    def set_sort_keys sort_keys
+      if @asn1.nil?
+        @sort_keys = sort_keys
+      else
+        @asn1.set_sort_keys sort_keys
+
+        @sort_keys = nil
+      end
+    end
+
+    def to_string
+      asn1.to_string
+    end
+
     def to_html
-      to_string
+      if asn1.respond_to? :to_html
+        asn1.to_html
+      else
+        asn1.to_string
+      end
     end
 
     private
@@ -1911,25 +1951,32 @@ module ASN1
     def to_ruby name, hash
       xml_element = XMLElement.new name
 
-      if not hash[:elements].nil?
+      if not hash[:elements].nil? and not hash[:elements].empty?
         hash[:elements].each do |k, v|
-          xml_element.elements[k] = []
+          if v.size > 1
+            xml_element_list = XMLElementList.new k
 
-          v.each do |x|
-            xml_element.elements[k] << to_ruby(k, x)
+            v.each do |x|
+              xml_element_list << to_ruby(k, x)
+            end
+
+            xml_element.elements[k] = xml_element_list
+          else
+            xml_element.elements[k] = to_ruby(k, v.first)
           end
         end
       end
 
-      if not hash[:attributes].nil?
+      if not hash[:attributes].nil? and not hash[:attributes].empty?
+        xml_element.attributes = XMLAttributes.new
+
         hash[:attributes].each do |k, v|
-          xml_attribute = XMLAttribute.new k, v
-          xml_element.attributes << xml_attribute
+          xml_element.attributes[k] = XMLText.new v
         end
       end
 
       if not hash[:text].nil?
-        xml_element.text = hash[:text]
+        xml_element.text = XMLText.new hash[:text]
       end
 
       xml_element
@@ -1937,47 +1984,457 @@ module ASN1
   end
 
   class XMLElement
+    attr_reader :name
     attr_accessor :elements, :attributes, :text
+    attr_accessor :path, :ignore, :match
 
     def initialize name
       @name = name
 
       @elements = {}
-      @attributes = []
+      @attributes = nil
       @text = nil
     end
 
+    def == other_element
+      if @ignore
+        true
+      else
+        if other_element.nil?
+          set_state nil, nil
+
+          false
+        else
+          if @name != other_element.name
+            set_state false, nil
+            other_element.set_state false, nil
+
+            false
+          else
+            status = true
+
+            @elements.each do |k, v|
+              if v != other_element.elements[k]
+                status = false
+              end
+            end
+
+            other_element.elements.each do |k, v|
+              if @elements.has_key? k
+                next
+              end
+
+              v.set_state nil, nil
+              status = false
+            end
+
+            if @attributes != other_element.attributes
+              status = false
+            end
+
+            if @text != other_element.text
+              status = false
+            end
+
+            status
+          end
+        end
+      end
+    end
+
+    def set_state match, ignore
+      @match = match
+      @ignore = ignore
+    end
+
+    def set_ignore path, condition = nil, force = false
+      if not @path.nil?
+        if @path.to_s == path
+          @ignore = true
+        end
+      end
+    end
+
+    def set_sort_keys sort_keys
+      @elements.each do |k, v|
+        if v.is_a? XMLElementList
+          v.set_sort_keys sort_keys
+        end
+      end
+    end
+
     def to_string
-      hash = {
-        name: @name.to_string
-      }
+      lines = []
 
-      if not @elements.empty?
-        hash[:elements] = @elements.to_string
+      str = @name
+
+      if not @attributes.nil?
+        str += ' ' + @attributes.to_string
       end
 
-      if not @attributes.empty?
-        hash[:attributes] = @attributes.to_string
+      if @elements.empty?
+        lines << '<%s>%s</%s>' % [str, @text.to_string, @name]
+      else
+        lines << '<%s>' % str
+
+        @elements.keys.sort.each do |k|
+          @elements[k].to_string.each_line do |line|
+            lines << (INDENT + line).rstrip
+          end
+        end
+
+        lines << '</%s>' % @name
       end
 
-      if not @text.nil?
-        hash[:text] = @text.to_string
+      lines.join "\n"
+    end
+
+    def to_html
+      lines = []
+
+      str = @name
+
+      if not @attributes.nil?
+        str += ' ' + @attributes.to_html
       end
 
-      hash.to_string
+      if @elements.empty?
+        lines << '<'.escapes + str + '>'.escapes + @text.to_string + '</'.escapes + @name + '>'.escapes
+      else
+        lines << '<'.escapes + str + '>'.escapes
+
+        @elements.keys.sort.each do |k|
+          @elements[k].to_html.each_line do |line|
+            lines << (INDENT + line).rstrip
+          end
+        end
+
+        lines << '</'.escapes + @name + '>'.escapes
+      end
+
+      lines.join "\n"
     end
   end
 
-  class XMLAttribute
-    attr_reader :name, :value
-
-    def initialize name, value
+  class XMLElementList < Array
+    def initialize name
       @name = name
-      @value = value
+    end
+
+    def == other_element_list
+      if @ignore
+        true
+      else
+        if other_sequence_list.nil?
+          set_state nil, nil
+
+          false
+        else
+          if @classname != other_sequence_list.classname
+            set_state false, nil
+            other_sequence_list.set_state false, nil
+
+            false
+          else
+            if not empty? and @sort_key and not first.get(@sort_key).nil?
+              is_numeric = false
+
+              klass = Java.import first.get(@sort_key).classname
+
+              if klass.number?
+                is_numeric = true
+              else
+                if not klass.java_variables['value'].nil? and klass.java_variables['value'].number?
+                  is_numeric = true
+                end
+              end
+
+              map = {}
+
+              each do |sequence|
+                if is_numeric
+                  value = sequence.get(@sort_key).to_s.to_f
+                else
+                  value = sequence.get(@sort_key).to_string
+                end
+
+                map[value] ||= []
+                map[value] << sequence
+              end
+
+              other_map = {}
+
+              other_sequence_list.each do |sequence|
+                if is_numeric
+                  value = sequence.get(@sort_key).to_s.to_f
+                else
+                  value = sequence.get(@sort_key).to_string
+                end
+
+                other_map[value] ||= []
+                other_map[value] << sequence
+              end
+
+              self.clear
+              other_sequence_list.clear
+
+              map.keys.sort.each do |k|
+                list = map[k]
+                other_list = other_map[k]
+
+                if other_list.nil?
+                  next
+                end
+
+                size = [list.size, other_list.size].min
+
+                size.times do
+                  self << list.shift
+                  other_sequence_list << other_list.shift
+                end
+
+                if list.empty?
+                  map.delete k
+                end
+
+                if other_list.empty?
+                  other_map.delete k
+                end
+              end
+
+              map.keys.sort.each do |k|
+                map[k].each do |sequence|
+                  self << sequence
+                end
+              end
+
+              other_map.keys.sort.each do |k|
+                other_map[k].each do |sequence|
+                  other_sequence_list << sequence
+                end
+              end
+            end
+
+            status = true
+
+            each_with_index do |sequence, index|
+              if sequence != other_sequence_list[index]
+                status = false
+              end
+            end
+
+            if size < other_sequence_list.size
+              other_sequence_list[size..-1].each do |sequence|
+                sequence.set_state nil, nil
+              end
+
+              status = false
+            end
+
+            status
+          end
+        end
+      end
+    end
+
+    def set_state match, ignore
+      each do |element|
+        element.set_state match, ignore
+      end
+    end
+
+    def set_ignore path, condition = nil, force = false
+      if @path.to_s == path
+        force = true
+      end
+
+      if force
+        @ignore = true
+      end
+
+      each do |element|
+        element.set_ignore path, condition, force
+      end
+    end
+
+    def set_sort_keys sort_keys
+      each do |element|
+        element.set_sort_keys sort_keys
+      end
     end
 
     def to_string
-      '%s = %s' % [@name, @value]
+      lines = []
+
+      each do |element|
+        element.to_string.each_line do |line|
+          lines << line.rstrip
+        end
+      end
+
+      lines.join "\n"
+    end
+
+    def to_html
+      lines = []
+
+      each do |element|
+        element.to_html.each_line do |line|
+          lines << line.rstrip
+        end
+      end
+
+      lines.join "\n"
+    end
+  end
+
+  class XMLAttributes < Hash
+    attr_accessor :path, :ignore
+
+    def initialize
+    end
+
+    def == other_attributes
+      if @ignore
+        true
+      else
+        if other_attributes.nil?
+          set_state nil, nil
+
+          false
+        else
+          status = true
+
+          each do |k, v|
+            if v != other_attributes[k]
+              status = false
+            end
+          end
+
+          other_attributes.each do |k, v|
+            if has_key? k
+              next
+            end
+
+            v.set_state nil, nil
+            status = false
+          end
+
+          status
+        end
+      end
+    end
+
+    def set_state match, ignore
+      each do |k, v|
+        v.set_state match, ignore
+      end
+    end
+
+    def set_ignore path, condition = nil, force = false
+      if @path.to_s == path
+        force = true
+      end
+
+      if force
+        @ignore = true
+      end
+
+      each do |k, v|
+        v.set_ignore path, condition, force
+      end
+    end
+
+    def to_string
+      lines = []
+
+      keys.sort.each do |k|
+        lines << "%s = '%s'" % [k.to_string, self[k].to_string]
+      end
+
+      lines.join ' '
+    end
+
+    def to_html
+      lines = []
+
+      keys.sort.each do |k|
+        lines << "%s = '%s'" % [k.to_string, self[k].to_html]
+      end
+
+      lines.join ' '
+    end
+  end
+
+  class XMLText
+    attr_reader :value
+    attr_accessor :path, :ignore, :match
+
+    def initialize value
+      @value = value
+    end
+
+    def == other_text
+      if @ignore
+        true
+      else
+        if other_text.nil?
+          set_state nil, nil
+
+          false
+        else
+          if @value == other_text.value
+            set_state true, nil
+            other_text.set_state true, nil
+
+            true
+          else
+            set_state false, nil
+            other_text.set_state false, nil
+
+            false
+          end
+        end
+      end
+    end
+
+    def set_state match, ignore
+      @match = match
+      @ignore = ignore
+    end
+
+    def set_ignore path, condition = nil, force = false
+      if force
+        @ignore = true
+      else
+        if not @path.nil?
+          if @path.to_s == path
+            @ignore = true
+          end
+        end
+      end
+    end
+
+    def to_string
+      @value.to_string
+    end
+
+    def to_html
+      str = @value.to_string
+
+      if @ignore
+        '<font color = "gray">%s</font>' % str
+      else
+        if @match.nil?
+          '<font color = "blue">%s</font>' % str
+        else
+          if @match
+            str
+          else
+            '<font color = "red">%s</font>' % str
+          end
+        end
+      end
     end
   end
 end
