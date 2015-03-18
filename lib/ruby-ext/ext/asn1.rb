@@ -1953,17 +1953,13 @@ module ASN1
 
       if not hash[:elements].nil? and not hash[:elements].empty?
         hash[:elements].each do |k, v|
-          if v.size > 1
-            xml_element_list = XMLElementList.new k
+          xml_element_list = XMLElementList.new k
 
-            v.each do |x|
-              xml_element_list << to_ruby(k, x)
-            end
-
-            xml_element.elements[k] = xml_element_list
-          else
-            xml_element.elements[k] = to_ruby(k, v.first)
+          v.each do |x|
+            xml_element_list << to_ruby(k, x)
           end
+
+          xml_element.elements[k] = xml_element_list
         end
       end
 
@@ -2099,7 +2095,7 @@ module ASN1
       end
 
       if @elements.empty?
-        lines << '<'.escapes + str + '>'.escapes + @text.to_string + '</'.escapes + @name + '>'.escapes
+        lines << '<'.escapes + str + '>'.escapes + @text.to_html + '</'.escapes + @name + '>'.escapes
       else
         lines << '<'.escapes + str + '>'.escapes
 
@@ -2117,6 +2113,9 @@ module ASN1
   end
 
   class XMLElementList < Array
+    attr_reader :name
+    attr_accessor :path, :ignore, :match
+
     def initialize name
       @name = name
     end
@@ -2125,107 +2124,28 @@ module ASN1
       if @ignore
         true
       else
-        if other_sequence_list.nil?
+        if other_element_list.nil?
           set_state nil, nil
 
           false
         else
-          if @classname != other_sequence_list.classname
+          if @name != other_element_list.name
             set_state false, nil
-            other_sequence_list.set_state false, nil
+            other_element_list.set_state false, nil
 
             false
           else
-            if not empty? and @sort_key and not first.get(@sort_key).nil?
-              is_numeric = false
-
-              klass = Java.import first.get(@sort_key).classname
-
-              if klass.number?
-                is_numeric = true
-              else
-                if not klass.java_variables['value'].nil? and klass.java_variables['value'].number?
-                  is_numeric = true
-                end
-              end
-
-              map = {}
-
-              each do |sequence|
-                if is_numeric
-                  value = sequence.get(@sort_key).to_s.to_f
-                else
-                  value = sequence.get(@sort_key).to_string
-                end
-
-                map[value] ||= []
-                map[value] << sequence
-              end
-
-              other_map = {}
-
-              other_sequence_list.each do |sequence|
-                if is_numeric
-                  value = sequence.get(@sort_key).to_s.to_f
-                else
-                  value = sequence.get(@sort_key).to_string
-                end
-
-                other_map[value] ||= []
-                other_map[value] << sequence
-              end
-
-              self.clear
-              other_sequence_list.clear
-
-              map.keys.sort.each do |k|
-                list = map[k]
-                other_list = other_map[k]
-
-                if other_list.nil?
-                  next
-                end
-
-                size = [list.size, other_list.size].min
-
-                size.times do
-                  self << list.shift
-                  other_sequence_list << other_list.shift
-                end
-
-                if list.empty?
-                  map.delete k
-                end
-
-                if other_list.empty?
-                  other_map.delete k
-                end
-              end
-
-              map.keys.sort.each do |k|
-                map[k].each do |sequence|
-                  self << sequence
-                end
-              end
-
-              other_map.keys.sort.each do |k|
-                other_map[k].each do |sequence|
-                  other_sequence_list << sequence
-                end
-              end
-            end
-
             status = true
 
-            each_with_index do |sequence, index|
-              if sequence != other_sequence_list[index]
+            each_with_index do |element, index|
+              if element != other_element_list[index]
                 status = false
               end
             end
 
-            if size < other_sequence_list.size
-              other_sequence_list[size..-1].each do |sequence|
-                sequence.set_state nil, nil
+            if size < other_element_list.size
+              other_element_list[size..-1].each do |element|
+                element.set_state nil, nil
               end
 
               status = false
@@ -2346,23 +2266,41 @@ module ASN1
     end
 
     def to_string
-      lines = []
+      str = ''
+      size = 0
 
       keys.sort.each do |k|
-        lines << "%s = '%s'" % [k.to_string, self[k].to_string]
+        line = "%s = '%s'" % [k.to_string, self[k].to_string]
+        size += line.bytesize
+
+        str += ' %s' % line
+
+        if size >= 60
+          str += "\n  "
+          size = 0
+        end
       end
 
-      lines.join ' '
+      str.rstrip
     end
 
     def to_html
-      lines = []
+      str = ''
+      size = 0
 
       keys.sort.each do |k|
-        lines << "%s = '%s'" % [k.to_string, self[k].to_html]
+        line = "%s = '%s'" % [k.to_string, self[k].to_html]
+        size += line.bytesize
+
+        str += ' %s' % line
+
+        if size >= 60
+          str += "\n  "
+          size = 0
+        end
       end
 
-      lines.join ' '
+      str.rstrip
     end
   end
 
