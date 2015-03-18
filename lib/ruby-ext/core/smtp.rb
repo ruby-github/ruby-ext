@@ -33,11 +33,11 @@ module Net
         mail.from = from_addr.to_s
         mail.subject = opt[:subject].to_s
 
-        if opt[:text]
+        if not opt[:text].nil?
           mail.text = opt[:text].to_s
         end
 
-        if opt[:html]
+        if not opt[:html].nil?
           mail.html = opt[:html].to_s
         end
 
@@ -48,12 +48,12 @@ module Net
           mail.to = addrs.join ', '
         end
 
-        if opt[:cc]
+        if not opt[:cc].nil?
           addrs += opt[:cc].to_array
           mail.cc = opt[:cc].to_array.join ', '
         end
 
-        if opt[:bcc]
+        if not opt[:bcc].nil?
           addrs += opt[:bcc].to_array
           mail.bcc = opt[:bcc].to_array.join ', '
         end
@@ -61,7 +61,7 @@ module Net
         addrs.uniq!
 
         if addrs.empty?
-          if opt[:admin]
+          if not opt[:admin].nil?
             addrs = opt[:admin].to_array
           end
 
@@ -70,7 +70,7 @@ module Net
           end
         end
 
-        if opt[:file]
+        if not opt[:file].nil?
           opt[:file].to_array.each do |file|
             mail.attach file.locale
           end
@@ -95,7 +95,7 @@ module Net
             logger.exception $!.to_s
           end
 
-          if opt[:admin]
+          if not opt[:admin].nil?
             smtp.open_message_stream from_addr, opt[:admin].to_array do |file|
               file.puts mail.to_s
             end
