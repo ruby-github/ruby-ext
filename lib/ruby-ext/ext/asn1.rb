@@ -943,6 +943,14 @@ module ASN1
       end
     end
 
+    def ne
+      @opt[:ne] || @opt[:name]
+    end
+
+    def cmdcode
+      @opt[:cmdcode] || @classname
+    end
+
     def to_string
       asn1.to_string
     end
@@ -1751,12 +1759,9 @@ module ASN1
       asn1_hash = {}
 
       asn1_list.each do |asn1|
-        ne = asn1.opt[:ne]
-        cmdcode = asn1.opt[:cmdcode]
-
-        asn1_hash[ne] ||= {}
-        asn1_hash[ne][cmdcode] ||= []
-        asn1_hash[ne][cmdcode] << asn1
+        asn1_hash[asn1.ne] ||= {}
+        asn1_hash[asn1.ne][asn1.cmdcode] ||= []
+        asn1_hash[asn1.ne][asn1.cmdcode] << asn1
       end
 
       asn1_hash
