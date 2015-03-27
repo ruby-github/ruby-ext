@@ -1420,7 +1420,7 @@ module ASN1
     end
 
     def save filename = nil, home = nil, template = false
-      filename ||= 'qx.log'
+      filename ||= 'qxnew.log'
       home ||= '.'
 
       if not File.mkdir home
