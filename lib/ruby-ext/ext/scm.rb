@@ -239,8 +239,8 @@ class SVN
     path = nil
 
     lines.each do |line|
-      if line =~ /Updating\s+'(.*)'(:|：)$/
-        path = File.expand_path $1.strip
+      if line =~ /(Updating|正在升级)\s+'(.*)'(:|：)$/
+        path = File.expand_path $2.strip
 
         map[path] = {
           :rev  => nil,
@@ -251,7 +251,7 @@ class SVN
       end
 
       if not path.nil?
-        if line =~ /(At\s+revision|更新到版本)\s+(\d+)(.|。)$/
+        if line =~ /(s+revision|更新到版本)\s+(\d+)(.|。)$/
           map[path][:rev] = $2.to_i
           path = nil
 
