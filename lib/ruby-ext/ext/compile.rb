@@ -324,6 +324,7 @@ module Compile
     def initialize name, message, opt = {}
       @opt = {
         :admin                => $settings[:email_admin],
+        :cc                   => $settings[:email_cc],
         :email_subject        => $settings[:email_subject],
         :email_threshold_file => $settings[:email_threshold_file],
         :email_threshold_day  => $settings[:email_threshold_day],
