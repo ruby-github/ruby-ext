@@ -323,13 +323,17 @@ module Compile
 
     def initialize name, message, opt = {}
       @opt = {
-        :admin                => $settings[:email_admin],
-        :cc                   => $settings[:email_cc],
         :email_subject        => $settings[:email_subject],
         :email_threshold_file => $settings[:email_threshold_file],
         :email_threshold_day  => $settings[:email_threshold_day],
         :error_scm            => $settings[:error_scm]
       }.deep_merge opt
+
+      @opt[:admin] = (@opt[:admin] || []).to_array + ($settings[:email_admin] || []).to_array
+      @opt[:admin].uniq!
+
+      @opt[:cc] = (@opt[:cc] || []).to_array + ($settings[:cc] || []).to_array
+      @opt[:cc].uniq!
 
       @info = {
         :error    => {},
