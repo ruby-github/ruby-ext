@@ -1843,7 +1843,7 @@ module ASN1
 
     def asn1
       if @asn1.nil? and not @hash_asn1.nil?
-        @asn1 = to_ruby @classname.split(':').last, @hash_asn1
+        @asn1 = to_ruby File.basename(@classname), @hash_asn1, File.dirname(@classname)
 
         if not @match.nil? or not @ignore.nil?
           set_state @match, @ignore
@@ -1947,21 +1947,28 @@ module ASN1
       end
 
       if not @data.nil?
-        classname = '%s:%s' % [@data.attributes['xmlns'], @data.name]
+        classname = '%s/%s' % [@data.attributes['xmlns'], @data.name]
       end
 
       classname
     end
 
-    def to_ruby name, hash
+    def to_ruby name, hash, path = nil
       xml_element = XMLElement.new name
+
+      if path.nil?
+        xml_element.path = name
+      else
+        xml_element.path = '%s.%s' % [path, name]
+      end
 
       if not hash[:elements].nil? and not hash[:elements].empty?
         hash[:elements].each do |k, v|
           xml_element_list = XMLElementList.new k
+          xml_element_list.path = '%s.%s' % [xml_element.path, k]
 
           v.each do |x|
-            xml_element_list << to_ruby(k, x)
+            xml_element_list << to_ruby(k, x, xml_element.path)
           end
 
           xml_element.elements[k] = xml_element_list
@@ -1970,14 +1977,17 @@ module ASN1
 
       if not hash[:attributes].nil? and not hash[:attributes].empty?
         xml_element.attributes = XMLAttributes.new
+        xml_element.attributes.path = xml_element.path
 
         hash[:attributes].each do |k, v|
           xml_element.attributes[k] = XMLText.new v
+          xml_element.attributes[k].path = '%s.%s' % [xml_element.path, k]
         end
       end
 
       if not hash[:text].nil?
         xml_element.text = XMLText.new hash[:text]
+        xml_element.text.path = xml_element.path
       end
 
       xml_element
@@ -2115,11 +2125,39 @@ module ASN1
 
       lines.join "\n"
     end
+
+    def get key
+      name, key = key.split '.', 2
+
+      if name == @name
+        if key.nil?
+          if @text.nil?
+            return to_string
+          else
+            return @text
+          end
+        end
+
+        if not @attributes.nil?
+          @attributes.each do |k, v|
+            if key == k
+              return v
+            end
+          end
+        end
+
+        if not @elements.empty?
+          return @elements.get(key)
+        end
+      end
+
+      nil
+    end
   end
 
   class XMLElementList < Array
     attr_reader :name
-    attr_accessor :path, :ignore, :match
+    attr_accessor :path, :ignore, :match, :sort_key
 
     def initialize name
       @name = name
@@ -2140,6 +2178,65 @@ module ASN1
 
             false
           else
+            if not empty? and @sort_key
+              map = {}
+
+              each do |element|
+                value = element.get @sort_key
+
+                map[value] ||= []
+                map[value] << element
+              end
+
+              other_map = {}
+
+              other_element_list.each do |element|
+                value = element.get @sort_key
+
+                other_map[value] ||= []
+                other_map[value] << element
+              end
+
+              self.clear
+              other_element_list.clear
+
+              map.keys.sort.each do |k|
+                list = map[k]
+                other_list = other_map[k]
+
+                if other_list.nil?
+                  next
+                end
+
+                size = [list.size, other_list.size].min
+
+                size.times do
+                  self << list.shift
+                  other_element_list << other_list.shift
+                end
+
+                if list.empty?
+                  map.delete k
+                end
+
+                if other_list.empty?
+                  other_map.delete k
+                end
+              end
+
+              map.keys.sort.each do |k|
+                map[k].each do |element|
+                  self << element
+                end
+              end
+
+              other_map.keys.sort.each do |k|
+                other_map[k].each do |element|
+                  other_element_list << element
+                end
+              end
+            end
+
             status = true
 
             each_with_index do |element, index|
@@ -2183,6 +2280,16 @@ module ASN1
     end
 
     def set_sort_keys sort_keys
+      if not empty?
+        sort_keys.each do |path, key|
+          if @path == path
+            @sort_key = key
+
+            break
+          end
+        end
+      end
+
       each do |element|
         element.set_sort_keys sort_keys
       end
@@ -2210,6 +2317,18 @@ module ASN1
       end
 
       lines.join "\n"
+    end
+
+    def get key
+      name, key = key.split '.', 2
+
+      if name == @name
+        each do |element|
+          return element.get(key)
+        end
+      end
+
+      nil
     end
   end
 

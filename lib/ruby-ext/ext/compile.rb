@@ -332,7 +332,7 @@ module Compile
       @opt[:admin] = (@opt[:admin] || []).to_array + ($settings[:email_admin] || []).to_array
       @opt[:admin].uniq!
 
-      @opt[:cc] = (@opt[:cc] || []).to_array + ($settings[:cc] || []).to_array
+      @opt[:cc] = (@opt[:cc] || []).to_array + ($settings[:email_cc] || []).to_array
       @opt[:cc].uniq!
 
       @info = {
