@@ -2146,8 +2146,12 @@ module ASN1
           end
         end
 
-        if not @elements.empty?
-          return @elements.get(key)
+        @elements.each do |k, v|
+          val = v.get key
+
+          if not val.nil?
+            return val
+          end
         end
       end
 
@@ -2178,7 +2182,7 @@ module ASN1
 
             false
           else
-            if not empty? and @sort_key
+            if not empty? and not @sort_key.nil?
               map = {}
 
               each do |element|
@@ -2323,8 +2327,12 @@ module ASN1
       name, key = key.split '.', 2
 
       if name == @name
-        each do |element|
-          return element.get(key)
+        if key.nil?
+          return to_string
+        else
+          each do |element|
+            return element.get(key)
+          end
         end
       end
 
