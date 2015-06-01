@@ -2134,7 +2134,7 @@ module ASN1
           if @text.nil?
             return to_string
           else
-            return @text
+            return @text.value
           end
         end
 
@@ -2147,7 +2147,7 @@ module ASN1
         end
 
         @elements.each do |k, v|
-          val = v.get key
+          val = v.get '%s.%s' % [v.name, key]
 
           if not val.nil?
             return val
@@ -2183,62 +2183,69 @@ module ASN1
             false
           else
             if not empty? and not @sort_key.nil?
-              map = {}
-
-              each do |element|
-                value = element.get @sort_key
-
-                map[value] ||= []
-                map[value] << element
-              end
-
-              other_map = {}
-
-              other_element_list.each do |element|
-                value = element.get @sort_key
-
-                other_map[value] ||= []
-                other_map[value] << element
-              end
-
-              self.clear
-              other_element_list.clear
-
-              map.keys.sort.each do |k|
-                list = map[k]
-                other_list = other_map[k]
-
-                if other_list.nil?
-                  next
-                end
-
-                size = [list.size, other_list.size].min
-
-                size.times do
-                  self << list.shift
-                  other_element_list << other_list.shift
-                end
-
-                if list.empty?
-                  map.delete k
-                end
-
-                if other_list.empty?
-                  other_map.delete k
-                end
-              end
-
-              map.keys.sort.each do |k|
-                map[k].each do |element|
-                  self << element
-                end
-              end
-
-              other_map.keys.sort.each do |k|
-                other_map[k].each do |element|
-                  other_element_list << element
-                end
-              end
+              # map = {}
+              #
+              # each do |element|
+              #   if @sort_key.split('.').first != element.name
+              #     next
+              #   end
+              #
+              #   element.elements.each do |k, v|
+              #     value = v.get @sort_key
+              #
+              #     map[k] ||= []
+              #     map[k][value] ||= []
+              #     map[k][value] << v
+              #   end
+              # end
+              #
+              # other_map = {}
+              #
+              # other_element_list.each do |element|
+              #   element.elements.each do |k, v|
+              #     value = v.get @sort_key
+              #
+              #     other_map[k] ||= []
+              #     other_map[k][value] ||= []
+              #     other_map[k][value] << v
+              #   end
+              # end
+              #
+              # map.keys.sort.each do |k|
+              #   list = map[k]
+              #   other_list = other_map[k]
+              #
+              #   if other_list.nil?
+              #     next
+              #   end
+              #
+              #   size = [list.size, other_list.size].min
+              #
+              #   size.times do
+              #     self << list.shift
+              #     other_element_list << other_list.shift
+              #   end
+              #
+              #   if list.empty?
+              #     map.delete k
+              #   end
+              #
+              #   if other_list.empty?
+              #     other_map.delete k
+              #   end
+              # end
+              #
+              # map.keys.sort.each do |k|
+              #   map[k].each do |element|
+              #     self << element
+              #   end
+              # end
+              #
+              # other_map.keys.sort.each do |k|
+              #   other_map[k].each do |element|
+              #     other_element_list << element
+              #   end
+              # end
             end
 
             status = true
