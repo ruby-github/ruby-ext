@@ -1773,39 +1773,46 @@ module ASN1
   # xml
   # 1) get
   #
-  #    <get>
-  #      <filter type="subtree">
-  #        ....
-  #      </filter>
-  #    </get>
+  #    <rpc xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  #      <get>
+  #        <filter type="subtree">
+  #          ....
+  #        </filter>
+  #      </get>
   #
-  #    <get-config>
-  #      <filter type="subtree">
-  #        ....
-  #      </filter>
-  #    </get-config>
+  #      <get-config>
+  #        <filter type="subtree">
+  #          ....
+  #        </filter>
+  #      </get-config>
   #
-  #    <get-next xmlns="http://www.zte.com.cn/zxr10/netconf/protocol/ns">
-  #      <filter type="subtree">
-  #        ....
-  #      </filter>
-  #    </get-next>
+  #      <get-next xmlns="http://www.zte.com.cn/zxr10/netconf/protocol/ns">
+  #        <filter type="subtree">
+  #          ....
+  #        </filter>
+  #      </get-next>
+  #    </rpc>
   #
   # 2) set
   #
-  #    <edit-config>
-  #      <config>
-  #        ....
-  #      </config>
-  #    </edit-config>
+  #    <rpc xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  #      <edit-config>
+  #        <config>
+  #          ....
+  #        </config>
+  #      </edit-config>
+  #    </rpc>
   #
   # 3) action
   #
-  #    <action xmlns="http://www.zte.com.cn/zxr10/netconf/protocol/ns">
-  #      <object>
-  #        ...
-  #      </object>
-  #    </action>
+  #    <rpc xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  #      <action xmlns="http://www.zte.com.cn/zxr10/netconf/protocol/ns">
+  #        <object>
+  #          ...
+  #        </object>
+  #      </action>
+  #    </rpc>
+  #
   class XML < Asn1
     # opt
     #     :name
@@ -1929,11 +1936,11 @@ module ASN1
     def get_classname
       classname = nil
 
-      if @opt[:data].size > 4
+      if @opt[:data].size > 6
         begin
           doc = REXML::Document.new @opt[:data].join("\n")
 
-          REXML::XPath.each doc, '/*/config | /*/filter | /*/object' do |e|
+          REXML::XPath.each doc, '/rpc/*/config | /rpc/*/filter | /rpc/*/object' do |e|
             e.each_element do |element|
               @data = element
 
