@@ -2116,7 +2116,7 @@ module ASN1
         str += ' ' + @attributes.to_html
       end
 
-      if @elements.empty?
+      if @elements.empty? and not @text.nil?
         lines << '<'.escapes + str + '>'.escapes + @text.to_html + '</'.escapes + @name + '>'.escapes
       else
         lines << '<'.escapes + str + '>'.escapes
