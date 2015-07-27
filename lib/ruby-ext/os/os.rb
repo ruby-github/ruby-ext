@@ -495,6 +495,18 @@ module OS
   end
 end
 
+module OS
+  module_function
+
+  def tempdir
+    if windows?
+      File.join 'c:/tmp', File.tmpname
+    else
+      File.join '/tmp', File.tmpname
+    end
+  end
+end
+
 module Colorize
   COLORS = {
     black:      30,

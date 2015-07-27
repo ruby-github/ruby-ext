@@ -462,4 +462,10 @@ class ZipFile < Zip::File
       false
     end
   end
+
+  def get_tempfile
+    temp_file = Tempfile.new(File.basename(name), OS.tempdir)
+    temp_file.binmode
+    temp_file
+  end
 end
