@@ -500,9 +500,9 @@ module OS
 
   def tempdir
     if windows?
-      File.join 'c:/tmp', File.tmpname
+      'c:/tmp'
     else
-      File.join '/tmp', File.tmpname
+      '/tmp'
     end
   end
 end
