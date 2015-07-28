@@ -1850,7 +1850,7 @@ module ASN1
 
     def asn1
       if @asn1.nil? and not @hash_asn1.nil?
-        @asn1 = to_ruby File.basename(@classname), @hash_asn1, File.dirname(@classname)
+        @asn1 = to_ruby File.basename(@classname), @hash_asn1
 
         if not @match.nil? or not @ignore.nil?
           set_state @match, @ignore
@@ -2066,19 +2066,28 @@ module ASN1
     end
 
     def set_ignore path, condition = nil, force = false
-      if not @path.nil?
-        if @path.to_s == path
-          @ignore = true
-        end
+      if @path.to_s == path
+        force = true
+      end
+
+      if force
+        @ignore = true
+      end
+
+      @elements.each do |k, v|
+        v.set_ignore path, condition, force
+      end
+
+      if not @attributes.nil?
+        @attributes.set_ignore path, condition, force
+      end
+
+      if not @text.nil?
+        @text.set_ignore path, condition, force
       end
     end
 
     def set_sort_keys sort_keys
-      @elements.each do |k, v|
-        if v.is_a? XMLElementList
-          v.set_sort_keys sort_keys
-        end
-      end
     end
 
     def to_string
@@ -2298,19 +2307,6 @@ module ASN1
     end
 
     def set_sort_keys sort_keys
-      if not empty?
-        sort_keys.each do |path, key|
-          if @path == path
-            @sort_key = key
-
-            break
-          end
-        end
-      end
-
-      each do |element|
-        element.set_sort_keys sort_keys
-      end
     end
 
     def to_string
@@ -2488,14 +2484,12 @@ module ASN1
     end
 
     def set_ignore path, condition = nil, force = false
+      if @path.to_s == path
+        force = true
+      end
+
       if force
         @ignore = true
-      else
-        if not @path.nil?
-          if @path.to_s == path
-            @ignore = true
-          end
-        end
       end
     end
 
