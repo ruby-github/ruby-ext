@@ -1031,6 +1031,20 @@ module Compile
               error_lines = cur_lines[-5..-1]
             end
 
+            if lines.size > index + 1
+              lines[index + 1 .. index + 10].each do |tmp_line|
+                tmp_line.strip!
+
+                if tmp_line =~ /^\[exec\].*\s+error\s*:\s*file\s*:\s*(.*\.xml)/
+                  break
+                end
+
+                if tmp_line =~ /^\[exec\].*\s+error\s*/
+                  error_lines << tmp_line
+                end
+              end
+            end
+
             if not file.nil?
               file = File.normalize file
 
