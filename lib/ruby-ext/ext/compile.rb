@@ -745,7 +745,7 @@ module Compile
           cur_lines.each do |tmp_line|
             tmp_line.strip!
 
-            if tmp_line =~ /^\[INFO\]\s+.*\.+\s*FAILURE/
+            if tmp_line =~ /^\[INFO\]\s+.*\.+\s*(FAILURE|SKIPPED)/
               @info[:summary] << tmp_line
             end
           end
