@@ -339,6 +339,7 @@ module Compile
         :error    => {},
         :warning  => {},
         :summary  => [],
+        :skipped  => [],
         :status   => true
       }
 
@@ -745,8 +746,12 @@ module Compile
           cur_lines.each do |tmp_line|
             tmp_line.strip!
 
-            if tmp_line =~ /^\[INFO\]\s+.*\.+\s*(FAILURE|SKIPPED)/
+            if tmp_line =~ /^\[INFO\]\s+.*\.+\s*(FAILURE)/
               @info[:summary] << tmp_line
+            end
+
+            if tmp_line =~ /^\[INFO\]\s+.*\.+\s*(SKIPPED)/
+              @info[:skipped] << tmp_line
             end
           end
 
