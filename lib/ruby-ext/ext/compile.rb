@@ -1121,6 +1121,16 @@ module Compile
         end
       end
 
+      if not @info[:skipped].empty?
+        @info[:skipped].each_with_index do |line, index|
+          if line.strip =~ /^\[INFO\]\s+(.*?)\s+\.+/
+            if map.has_key? $1
+              @info[:skipped][index] = '%s(%s)' % [line, File.relative_path(map[$1])]
+            end
+          end
+        end
+      end
+
       if status != true
         name = nil
         error_lines = []
