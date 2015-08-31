@@ -1307,7 +1307,7 @@ module Counter
       begin
         application = Excel::Application.new
 
-        wk = application.add File.join(gem_dir('rspec-auto'), 'doc/counter_template.xlt')
+        wk = application.add File.join(gem_dir('ruby-ext'), 'doc/counter_template.xltx')
 
         # 汇总信息
         sht = wk.worksheets 1
