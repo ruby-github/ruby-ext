@@ -4,7 +4,6 @@ require 'tmpdir'
 class File
   class << self
     alias __expand_path__ expand_path
-    alias __join__ join
     alias __open__ open
   end
 
@@ -22,10 +21,6 @@ class File
     else
       __expand_path__(filename, dir).utf8
     end
-  end
-
-  def self.join *strings
-    File.cleanpath __join__(strings)
   end
 
   def self.open filename, mode = 'r', *args
@@ -99,14 +94,6 @@ class File
 
   def self.relative? filename
     Pathname.new(filename.locale.strip).relative?
-  end
-
-  def self.cleanpath filename
-    if filename.empty?
-      ''
-    else
-      Pathname.new(filename.locale.strip).cleanpath.to_s.utf8
-    end
   end
 
   def self.lock filename, mode = 'r+'
