@@ -264,6 +264,23 @@ class SVN
       end
     end
 
+    $updated = {}
+
+    map.each do |k, v|
+      if v[:info].empty?
+        next
+      end
+
+      v[:info].each do |flag, name|
+        if not ['A', 'D'].include? flag
+          flag = 'U'
+        end
+
+        $updated[flag] ||= []
+        $updated[flag] << File.expand_path(name)
+      end
+    end
+
     File.open 'updates.txt', 'w' do |file|
       map.each do |k, v|
         if v[:info].empty?
