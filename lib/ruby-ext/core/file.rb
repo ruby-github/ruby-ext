@@ -1,5 +1,6 @@
 require 'fileutils'
 require 'tmpdir'
+require 'pathname'
 
 class File
   class << self
