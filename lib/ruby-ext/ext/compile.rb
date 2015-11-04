@@ -1076,6 +1076,58 @@ module Compile
 
             next
           end
+
+          # asn1
+          #   /^\[exec\].*file\s*\"(.*)\",\s*line\s*(\d+)\s*:\s*parse\s+error\s+/
+          if line =~ /^\[exec\].*file\s*\"(.*)\",\s*line\s*(\d+)\s*:\s*parse\s+error\s+/
+            file = $1.strip.nil
+
+            if cur_lines.size <= 5
+              error_lines = cur_lines
+            else
+              error_lines = cur_lines[-5..-1]
+            end
+
+            if lines.size > index + 1
+              lines[index + 1 .. index + 10].each do |tmp_line|
+                tmp_line.strip!
+
+                if tmp_line =~ /^\[exec\].*file\s*\"(.*)\",\s*line\s*(\d+)\s*:\s*parse\s+error\s+/
+                  break
+                end
+
+                if tmp_line =~ /^\[exec\]\s*Parsing\s+errors/
+                  error_lines << tmp_line
+                end
+              end
+            end
+
+            if not file.nil?
+              file = File.normalize file
+
+              @info[:error][file] ||= {
+                :list => []
+              }
+
+              if not @info[:error][file][:list].empty?
+                @info[:error][file][:list][-1][:message] += error_lines
+                @info[:error][file][:list][-1][:build] += cur_lines
+              else
+                @info[:error][file][:list] << {
+                  lineno:   nil,
+                  message:  error_lines,
+                  build:    cur_lines
+                }
+              end
+            end
+
+            file = nil
+            lineno = nil
+            error_lines = []
+            cur_lines = []
+
+            next
+          end
         else
           if line =~ /^\[ERROR\]/
             error_lines << line
