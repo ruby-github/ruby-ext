@@ -62,6 +62,8 @@ class File
     if filename.empty?
       ''
     else
+      filename = filename.gsub '\\', '/'
+
       if relative? filename
         relative_path filename
       else
@@ -731,5 +733,19 @@ class File
 
   class << self
     private :copy_file, :move_file, :delete_file
+  end
+end
+
+class Pathname
+  private
+
+  def chop_basename path
+    base = File.basename path
+
+    if /\A#{SEPARATOR_PAT}?\z/o =~ base
+      return nil
+    else
+      return path[0, path.rindex(base) || 0], base
+    end
   end
 end
