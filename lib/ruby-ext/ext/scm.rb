@@ -1188,7 +1188,7 @@ class GIT_TFS < GIT
   def self.clone repos, path = nil, logger = nil, opt = {}
     args = (opt[:git_args] || opt[:args]).to_s.utf8.nil
 
-    cmdline = 'git tf clone'
+    cmdline = 'git-tf clone'
 
     if not args.nil?
       cmdline += ' %s' % args
@@ -1268,7 +1268,7 @@ class GIT_TFS < GIT
       Dir.chdir dir do
         args = (opt[:git_args] || opt[:args]).to_s.utf8.nil
 
-        cmdline = 'git tf fetch'
+        cmdline = 'git-tf fetch'
 
         if not args.nil?
           cmdline += ' %s' % args
@@ -1297,7 +1297,7 @@ class GIT_TFS < GIT
       Dir.chdir dir do
         args = (opt[:git_args] || opt[:args]).to_s.utf8.nil
 
-        cmdline = 'git tf checkin'
+        cmdline = 'git-tf checkin'
 
         if not args.nil?
           cmdline += ' %s' % args
