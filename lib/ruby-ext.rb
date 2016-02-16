@@ -40,8 +40,7 @@ $settings = {
   email_threshold_day: 7,
   env: {},
   error_puts: true,
-  error_scm: true,
-  exception_trace: true
+  error_scm: true
 }
 
 ['JAVA_OPTIONS', '_JAVA_OPTIONS', 'JAVA_TOOL_OPTIONS'].each do |x|

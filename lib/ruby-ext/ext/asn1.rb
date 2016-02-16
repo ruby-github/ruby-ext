@@ -1056,6 +1056,14 @@ module ASN1
         classname = @@tags[tag]
       end
 
+      if not @opt[:cmdcode].nil?
+        if not $settings['asn1:cmdcode'].nil?
+          if $settings['asn1:cmdcode'].has_key? @opt[:cmdcode]
+            classname = $settings['asn1:cmdcode'][@opt[:cmdcode]]
+          end
+        end
+      end
+
       classname
     end
 
