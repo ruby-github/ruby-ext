@@ -144,7 +144,11 @@ class Logger
       @shift_size = nil
       @encoding = nil
 
-      @mutex = LogDeviceMutex.new
+      if defined? LogDeviceMutex
+        @mutex = LogDeviceMutex.new
+      else
+        mon_initialize
+      end
 
       if log.respond_to? :write and log.respond_to? :close
         @dev = log
