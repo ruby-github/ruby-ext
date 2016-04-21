@@ -486,7 +486,7 @@ class File
     preserve = true
 
     if not opt.nil?
-      preserve = opt[:preserve] || true
+      preserve = opt[:preserve].to_s.boolean true
     end
 
     status = true
